@@ -1,0 +1,26 @@
+name: Docker Image CI
+on:
+  push:
+    branches:
+      - main
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: "${{ github.repository_owner }}"
+          password: "${{ secrets.GH_PAT }}"
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          push: true
+          tags: "ghcr.io/cndoit18/minnow:latest"
+          platforms: linux/amd64,linux/arm64
+          file: .devcontainer/Dockerfile
