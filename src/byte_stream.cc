@@ -9,11 +9,11 @@ ByteStream::ByteStream( uint64_t capacity ) : capacity_( capacity ) {}
 void Writer::push( string data )
 {
   // Your code here.
-    for (auto current{data.begin()}; current != data.end() && capacity_ > 0;current++) {
-        data_.push_back(*current);
-        capacity_--;
-        bytes_written_++;
-    }  
+  for ( auto current { data.begin() }; current != data.end() && capacity_ > 0; current++ ) {
+    data_.push_back( *current );
+    capacity_--;
+    bytes_written_++;
+  }
 }
 
 void Writer::close()
@@ -67,11 +67,11 @@ bool Reader::has_error() const
 void Reader::pop( uint64_t len )
 {
   // Your code here.
-  uint64_t pos{len};
-  if (len > data_.size()) {
+  uint64_t pos { len };
+  if ( len > data_.size() ) {
     pos = data_.size();
   }
-  data_ = data_.substr(pos);
+  data_ = data_.substr( pos );
   capacity_ += pos;
   bytes_read_ += pos;
 }

@@ -2,10 +2,18 @@
 
 #include "byte_stream.hh"
 
+#include <cstdint>
+#include <deque>
+#include <optional>
 #include <string>
 
 class Reassembler
 {
+  std::optional<uint64_t> end_index_ {};
+  std::deque<std::optional<char>> data_ {};
+  uint64_t confirm_index_ { 0 };
+  uint64_t pedding_ { 0 };
+
 public:
   /*
    * Insert a new substring to be reassembled into a ByteStream.
