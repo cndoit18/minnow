@@ -2,7 +2,10 @@
 // README at: https://github.com/devcontainers/templates/tree/main/src/cpp
 {
   "name": "C++",
-  "image": "ghcr.io/cndoit18/minnow:latest",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "cacheFrom": "ghcr.io/cndoit18/minnow:latest"
+  },
   "runArgs": ["--privileged"],
   "customizations": {
     // Configure properties specific to VS Code.
