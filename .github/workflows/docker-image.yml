@@ -22,6 +22,7 @@ jobs:
         with:
           push: true
           tags: "ghcr.io/cndoit18/minnow:latest"
+          context: .
           cache-from: |
             ghcr.io/cndoit18/minnow:latest
           platforms: linux/amd64,linux/arm64
