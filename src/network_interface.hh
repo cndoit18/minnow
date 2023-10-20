@@ -4,12 +4,21 @@
 #include "ethernet_frame.hh"
 #include "ipv4_datagram.hh"
 
+#include <cstdint>
 #include <iostream>
 #include <list>
+#include <map>
 #include <optional>
 #include <queue>
 #include <unordered_map>
 #include <utility>
+
+template<class O>
+struct Expiration
+{
+  O obj;
+  uint32_t tick;
+};
 
 // A "network interface" that connects IP (the internet layer, or network layer)
 // with Ethernet (the network access layer, or link layer).
@@ -40,6 +49,10 @@ private:
 
   // IP (known as Internet-layer or network-layer) address of the interface
   Address ip_address_;
+  std::map<std::string, Expiration<EthernetAddress>> mapper_ {};
+  std::deque<Expiration<EthernetFrame>> sended_ {};
+  std::deque<EthernetFrame> sendqueue_ {};
+  std::map<uint32_t, uint32_t> next_ {};
 
 public:
   // Construct a network interface with given Ethernet (network-access-layer) and IP (internet-layer)
