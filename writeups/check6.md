@@ -1,23 +1,24 @@
 Checkpoint 6 Writeup
 ====================
 
-My name: [your name here]
+My name: cndoit18
 
-My SUNet ID: [your sunetid here]
+My SUNet ID: cndoit18
 
-I collaborated with: [list sunetids here]
+I collaborated with: nobody
 
-I would like to thank/reward these classmates for their help: [list sunetids here]
+I would like to thank/reward these classmates for their help: nobody
 
-This checkpoint took me about [n] hours to do. I [did/did not] attend the lab session.
+This checkpoint took me about [0] hours to do. I [did/did not] attend the lab session.
 
 Solo portion:
 
-- Did your implementation successfully start and end a conversation with another copy of itself? [y/n]
+- Did your implementation successfully start and end a conversation with another copy of itself? [y]
 
-- Did it successfully transfer a one-megabyte file, with contents identical upon receipt? [y/n]
+- Did it successfully transfer a one-megabyte file, with contents identical upon receipt? [y]
 
 - Please describe what code changes, if any, were necessary to pass these steps:
+  None
 
 Group portion:
 
