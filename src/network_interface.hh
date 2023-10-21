@@ -52,7 +52,7 @@ private:
   std::map<std::string, Expiration<EthernetAddress>> mapper_ {};
   std::deque<Expiration<EthernetFrame>> sended_ {};
   std::deque<EthernetFrame> sendqueue_ {};
-  std::map<uint32_t, uint32_t> next_ {};
+  std::deque<std::pair<InternetDatagram, Address>> next_ {};
 
 public:
   // Construct a network interface with given Ethernet (network-access-layer) and IP (internet-layer)

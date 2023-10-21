@@ -1,4 +1,8 @@
 #include "router.hh"
+#include "address.hh"
+#include "arp_message.hh"
+#include "ethernet_frame.hh"
+#include "ethernet_header.hh"
 
 #include <iostream>
 #include <limits>
@@ -19,11 +23,25 @@ void Router::add_route( const uint32_t route_prefix,
   cerr << "DEBUG: adding route " << Address::from_ipv4_numeric( route_prefix ).ip() << "/"
        << static_cast<int>( prefix_length ) << " => " << ( next_hop.has_value() ? next_hop->ip() : "(direct)" )
        << " on interface " << interface_num << "\n";
-
-  (void)route_prefix;
-  (void)prefix_length;
-  (void)next_hop;
-  (void)interface_num;
+  routes_.emplace_back( *this, route_prefix, prefix_length, next_hop, interface_num );
+  sort( routes_.begin(), routes_.end(), []( MatchRouter& x, MatchRouter& y ) {
+    return x.prefix_length_ > y.prefix_length_;
+  } );
 }
 
-void Router::route() {}
+void Router::route()
+{
+  for ( auto& i : interfaces_ ) {
+    while ( true ) {
+      auto data = i.maybe_receive();
+      if ( !data.has_value() ) {
+        break;
+      }
+      for ( auto& r : routes_ ) {
+        if ( r.match_router( data.value(), data->header.dst ) ) {
+          break;
+        }
+      }
+    }
+  }
+}

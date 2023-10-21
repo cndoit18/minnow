@@ -4,9 +4,11 @@
 #include "arp_message.hh"
 #include "ethernet_frame.hh"
 #include "ethernet_header.hh"
+#include "ipv4_datagram.hh"
 #include "parser.hh"
 #include <cstddef>
 #include <deque>
+#include <iostream>
 #include <optional>
 #include <vector>
 
@@ -34,12 +36,12 @@ void NetworkInterface::send_datagram( const InternetDatagram& dgram, const Addre
   frame.header.type = EthernetHeader::TYPE_IPv4;
   frame.payload = serialize( dgram );
 
-  mapper_[to_string( ip_address_.ipv4_numeric() )] = Expiration<EthernetAddress> {
+  mapper_[ip_address_.ip()] = Expiration<EthernetAddress> {
     .obj = ethernet_address_,
     .tick = 0,
   };
 
-  auto iter = mapper_.find( to_string( next_hop.ipv4_numeric() ) );
+  auto iter = mapper_.find( next_hop.ip() );
   if ( iter == mapper_.end() ) {
     EthernetFrame arp;
     arp.header.src = ethernet_address_;
@@ -52,33 +54,31 @@ void NetworkInterface::send_datagram( const InternetDatagram& dgram, const Addre
     msg.target_ip_address = next_hop.ipv4_numeric();
     arp.payload = serialize( msg );
     sendqueue_.emplace_back( arp );
-    next_[dgram.header.dst] = next_hop.ipv4_numeric();
-  } else {
-    frame.header.dst = iter->second.obj;
+    next_.emplace_back( dgram, next_hop );
+    return;
   }
+
+  frame.header.dst = iter->second.obj;
   sendqueue_.emplace_back( frame );
 }
 
 // frame: the incoming Ethernet frame
 optional<InternetDatagram> NetworkInterface::recv_frame( const EthernetFrame& frame )
 {
-  if ( frame.header.dst != ethernet_address_
-       && frame.header.dst != EthernetAddress { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff } ) {
+  if ( frame.header.dst != ethernet_address_ && frame.header.dst != ETHERNET_BROADCAST ) {
     return nullopt;
   }
 
   switch ( frame.header.type ) {
     case EthernetHeader::TYPE_IPv4: {
       InternetDatagram dgram;
-      if ( parse( dgram, frame.payload ) ) {
-        return dgram;
-      }
-      return nullopt;
+      parse( dgram, frame.payload );
+      return dgram;
     }
     case EthernetHeader::TYPE_ARP: {
       ARPMessage arp;
       if ( parse( arp, frame.payload ) ) {
-        mapper_[to_string( arp.sender_ip_address )] = Expiration<EthernetAddress> {
+        mapper_[Address::from_ipv4_numeric( arp.sender_ip_address ).ip()] = Expiration<EthernetAddress> {
           .obj = arp.sender_ethernet_address,
           .tick = 30000,
         };
@@ -100,18 +100,39 @@ optional<InternetDatagram> NetworkInterface::recv_frame( const EthernetFrame& fr
       }
     }
   }
+
+  for ( auto nex = next_.begin(); nex != next_.end(); ) {
+    auto iter = mapper_.find( nex->second.ip() );
+    if ( iter == mapper_.end() ) {
+      ++nex;
+      continue;
+    }
+    EthernetFrame ff;
+    ff.header.src = ethernet_address_;
+    ff.header.dst = iter->second.obj;
+    ff.header.type = EthernetHeader::TYPE_IPv4;
+    ff.payload = serialize( InternetDatagram { nex->first } );
+    nex = next_.erase( nex );
+    sendqueue_.emplace_back( ff );
+  }
+
   return nullopt;
 }
 
 // ms_since_last_tick: the number of milliseconds since the last call to this method
 void NetworkInterface::tick( const size_t ms_since_last_tick )
 {
+  std::vector<std::string> keys_to_remove {};
   for ( auto& pair : mapper_ ) {
     if ( pair.second.tick < ms_since_last_tick ) {
-      mapper_.erase( pair.first );
+      keys_to_remove.push_back( pair.first );
       continue;
     }
     pair.second.tick -= ms_since_last_tick;
+  }
+
+  for ( auto& del : keys_to_remove ) {
+    mapper_.erase( del );
   }
 
   for ( auto begin = sended_.begin(); begin != sended_.end(); ) {
@@ -127,19 +148,6 @@ void NetworkInterface::tick( const size_t ms_since_last_tick )
 optional<EthernetFrame> NetworkInterface::maybe_send()
 {
   for ( auto begin = sendqueue_.begin(); begin != sendqueue_.end(); begin++ ) {
-    if ( begin->header.dst == EthernetAddress {} ) {
-      InternetDatagram dgram;
-      parse( dgram, begin->payload );
-      auto it = next_.find( dgram.header.dst );
-      if ( it != next_.end() ) {
-        auto iter = mapper_.find( to_string( it->second ) );
-        if ( iter != mapper_.end() ) {
-          begin->header.dst = iter->second.obj;
-          --begin;
-        }
-      }
-      continue;
-    }
     auto result = optional<EthernetFrame> { *begin };
     begin = sendqueue_.erase( begin );
     if ( result->header.type == EthernetHeader::TYPE_ARP ) {
@@ -156,5 +164,6 @@ optional<EthernetFrame> NetworkInterface::maybe_send()
     }
     return result;
   }
+
   return nullopt;
 }
